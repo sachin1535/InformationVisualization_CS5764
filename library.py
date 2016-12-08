@@ -24,11 +24,14 @@ for folder in foldersList:
 	print(folder)
 	print(path)
 	out_feature_dataset = folder
-	arcpy.CreateFeatureclass_management(gdb_path, folder+"WAP_Points.shp", "POINT")
-	arcpy.AddField_management(folder+"WAP_Points.shp","WAPID","TEXT")
-	arcpy.AddField_management(folder+"WAP_Points.shp","B.NAME","TEXT")
+	arcpy.CreateFeatureclass_management(op_gdb_path, folder+"WAP_Points", "POINT")
+	arcpy.AddField_management(folder+"WAP_Points","WAPID","TEXT")
+	arcpy.AddField_management(folder+"WAP_Points","B_NAME","TEXT")
+	arcpy.AddField_management(folder+"WAP_Points","SOURCE","TEXT")
+	arcpy.AddField_management(folder+"WAP_Points","FLOOR","TEXT")
 	fieldMappings = arcpy.FieldMappings()
-	fieldMappings.addTable(folder+"WAP_Points.shp")
+	fieldMappings.addTable(folder+"WAP_Points")
+	FolderEleCnt = 0;
 	for file in os.listdir(path+folder):
 		if file.endswith(".dwg"):
 			input_file = os.path.join(path+folder,file)
@@ -69,7 +72,7 @@ for folder in foldersList:
 					currwaps.name, currwaps.aliasName, currwaps.type = "WAPID", "WAPID", "TEXT"
 					fldMap.outputField = currwaps
 					fieldMappings.addFieldMap(fldMap)
-					arcpy.Append_management('temp1.shp', folder+"WAP_Points.shp", 'NO_TEST',fieldMappings)
+					arcpy.Append_management('temp1.shp', folder+"WAP_Points", 'NO_TEST',fieldMappings)
 					
 					fldMap = arcpy.FieldMap() 
 					fldMap.addInputField("temp2.shp","Text")
@@ -77,13 +80,13 @@ for folder in foldersList:
 					currwaps.name, currwaps.aliasName, currwaps.type = "WAPID", "WAPID", "TEXT"
 					fldMap.outputField = currwaps
 					fieldMappings.addFieldMap(fldMap)
-					arcpy.Append_management('temp2.shp', folder+"WAP_Points.shp", 'NO_TEST',fieldMappings)
+					arcpy.Append_management('temp2.shp', folder+"WAP_Points", 'NO_TEST',fieldMappings)
 
 					#Deleting the Temporary created Feature Classes
 					arcpy.Delete_management("temp1.shp")
 					arcpy.Delete_management("temp2.shp")
 					#Delete IOdenticle points 
-					arcpy.DeleteIdentical_management(folder+"WAP_Points.shp", 'WAPID')
+					arcpy.DeleteIdentical_management(folder+"WAP_Points", 'WAPID')
 					#creating combine list
 					infoNLWAP = infoNLWAP.tolist()
 					AnnoNLWAP = AnnoNLWAP.tolist()
@@ -95,7 +98,21 @@ for folder in foldersList:
 							Combo.append("LIB-234"+parts[0])
 					print(Combo)
 
+					# adding floor information 
+					features = arcpy.UpdateCursor(op_gdb_path+"\\"+folder+"WAP_Points", "\"OBJECTID\" > {}".format(FolderEleCnt-1) )
+					flparts = file.split('.')
+					flno = flparts[0][len(flparts[0])-2:len(flparts[0])]
+					for ele in range(len(Combo)):
+							row = features.next()
+							row.setValue("SOURCE",file)
+							row.setValue("WAPID",Combo[ele])
+							row.setValue("B_NAME",folder)
+							row.setValue("FLOOR",flno)
+							features.updateRow(row)
+							
+							print(file)
 					#Writing results for Each File
+					FolderEleCnt = FolderEleCnt+len(Combo); 
 					dir_ForResults = wap_results_path+"\\"+folder+"\\"
 					dd = os.path.dirname(dir_ForResults)
 					if not os.path.exists(dd):
@@ -115,23 +132,6 @@ for folder in foldersList:
 					currXMLFile = dir_ForDB+file[:-4]+".xml"
 					if not os.path.isfile(currXMLFile):
 						arcpy.ExportXMLWorkspaceDocument_management(op_gdb_path+"\\"+folder,dir_ForDB+file[:-4]+".xml")
-	arcpy.AddGeometryAttributes_management(folder+"WAP_Points.shp", 'POINT_X_Y_Z_M', 'FEET_US', 'SQUARE_MILES_US')
-	#create list of the WA ID's
-	Combo = list()
-	waplist = arcpy.da.TableToNumPyArray(folder+"WAP_Points.shp","WAPID")
-	waplist = waplist.tolist()
-	for ele in waplist:
-		for name in ele:
-			parts = name.split(',')
-			Combo.append("LIB-234"+parts[0])
-	print(Combo)
-	#Update the WAPIDs with Exact required id == AMP system 
-	features = arcpy.UpdateCursor(folder+"WAP_Points.shp")
-	features.reset()
-	for ele in range(len(Combo)):
-		row = features.next()
-		row.setValue("WAPID",Combo[ele])
-		row.setValue("B.NAME",folder)
-		features.updateRow(row)
 			except:
-				print(arcpy.GetMessage())    				
+				print(arcpy.GetMessage())
+arcpy.AddGeometryAttributes_management(folder+"WAP_Points", 'POINT_X_Y_Z_M', 'FEET_US', 'SQUARE_MILES_US')

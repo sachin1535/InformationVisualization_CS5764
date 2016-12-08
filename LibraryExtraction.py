@@ -40,9 +40,10 @@ for file in os.listdir(path):
 					arcpy.Merge_management(["temp1.shp","temp2.shp"], "NewmanWapPoints.shp")
 					arcpy.DeleteFeatures_management("temp1.shp")
 					arcpy.DeleteFeatures_management("temp2.shp")
-					infoNLWAP = infoNLWAP.tolist()
+					
 
 					#creating combine list
+					infoNLWAP = infoNLWAP.tolist()
 					infoNLWAP = set(infoNLWAP)
 					infoNLWAP = list(infoNLWAP)
 
