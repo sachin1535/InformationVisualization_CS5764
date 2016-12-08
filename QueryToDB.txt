@@ -1,0 +1,12 @@
+Query for getting content from database: 
+
+SELECT count(`orig-ap-device`), `orig-ap-device`, `computed-date-time`,`computed-bldg`,`computed-system`
+FROM `amp-bldg-mac`
+WHERE `computed-bldg` LIKE 'LIB%'
+GROUP BY `orig-ap-device`, `computed-date-time`
+  ORDER BY `amp-bldg-mac`.`orig-ap-device` ASC
+
+SELECT count(`orig-ap-device`), `computed-date-time`,`computed-bldg`,`computed-system`
+FROM `amp-bldg-mac`
+GROUP BY `computed-bldg`, `computed-date-time`
+  ORDER BY `amp-bldg-mac`.`computed-bldg` ASC
